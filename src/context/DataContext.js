@@ -1,10 +1,7 @@
-import { createContext, useState, useEffect } from "react"; 
+import { createContext, useState, useEffect } from "react";
 import {useNavigate} from "react-router-dom";
 import useWindowSize from "../hooks/useWindowSize";
-import useAxiosFetch from "../hooks/useAxiosFetch";
-import api from "../api/posts"
 import {format} from "date-fns"
-
 
 const DataContext = createContext({})
 
@@ -18,79 +15,90 @@ export const DataProvider = ({children}) => {
     const [editBody, setEditBody] = useState('');
     const navigate = useNavigate()
     const {width} = useWindowSize()
-    const {data, fetchError, isLoading} = useAxiosFetch('http://localhost:3500/posts')
   
-  
-    useEffect(() => {
-      setPosts(data)
-    }, [data])
-  
+    //Logic to fetch data
+    const [fetchError, setFetchError] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    useEffect(()=>{
+      const fetchPosts = async () =>{
+        try{
+          const response = (JSON.parse(localStorage.getItem('social_media_post_app')) || [])
+          setPosts(response);
+          setFetchError(null)
+        }catch(err){
+          setFetchError(err.message);
+          setPosts(null)
+      }finally{
+        setTimeout(() => 
+          setIsLoading(false), 2000)
+      }
+    }
+    fetchPosts();
+    }, [])
+
     useEffect(() => {
       const filteredResults = posts.filter((post) =>
       ((post.body).toLowerCase()).includes(search.toLowerCase()) ||
       ((post.title).toLowerCase()).includes (search.toLowerCase()));
-  
+
       setSearchResults(filteredResults.reverse())
     }, [posts, search]);
-  
+
     const handleSubmit = async (e) => {
           e.preventDefault();
           const id = posts.length ? posts[posts.length - 1].id + 1 : 1;
           const datetime = format(new Date(), 'MMMM dd, yyyy pp');
           const newPost = { id, title: postTitle, datetime, body: postBody };
           try{
-            const response = await api.post('/posts', newPost)
-            const allPosts = [...posts, response.data];
+            const allPosts = [...posts, newPost];
             setPosts(allPosts);
             setPostTitle('');
-            setPostBody(''); 
+            setPostBody('');
             navigate('/')
+            localStorage.setItem('social_media_post_app', JSON.stringify(allPosts))
           } catch (err) {
-            if(err.response){
-              //Not in the 200 response range
-              console.log(err.response.data)
-              console.log(err.response.status)
-              console.log(err.response.header)
-            } else {
-                console.log(`Error: $(err.message}`);
-            }
+             console.log(`Error: $(err.message}`);  
           }
       }
-  
+
       const handleDelete = async (id) => {
         try{
-          await api.delete(`posts/${id}`)
           const postsList = posts.filter(post => post.id !== id);
           setPosts(postsList);
           navigate('/')
+          localStorage.setItem('social_media_post_app', JSON.stringify(postsList))
         }
         catch(err){
           console.log(`Error: ${err.message}`);
         }
     }
-  
-    const handleEdit = async (id) => {
+
+    const handleEdit = async (event, id) => {
+      event.preventDefault();
       const datetime = format(new Date(), 'MMMM dd, yyyy pp');
-      const updatedPost = { id, title: editTitle, datetime, body: editBody};
-      try{
-        const response = await api.put(`/posts/${id}`, updatedPost)
-        setPosts(posts.map(post => post.id===id ? {...response.data} : post));
+      const updatedPost = { id, title: editTitle, datetime, body: editBody };
+      try {
+        const updatedPosts = posts.map(post => post.id === id ? updatedPost : post);
+        setPosts(updatedPosts);
         setPostTitle('');
-        setPostBody(''); 
-        navigate('/')
-      }catch(err){
+        setPostBody('');
+        navigate('/');
+        localStorage.setItem('social_media_post_app', JSON.stringify(updatedPosts));
+      } catch (err) {
         console.log(`Error: ${err.message}`);
       }
-    }
+    };
+
+
     return (
         <DataContext.Provider value = {{
            width, search, setSearch,
-           searchResults, fetchError, isLoading,
+           searchResults,
            handleSubmit, postTitle, setPostTitle,
            postBody, setPostBody,
            posts, handleEdit, editBody, setEditBody,
-           editTitle, setEditTitle, 
-           handleDelete
+           editTitle, setEditTitle, handleDelete,
+          fetchError, isLoading
         }}>
             {children}
         </DataContext.Provider>

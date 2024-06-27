@@ -4,7 +4,7 @@ import DataContext from './context/DataContext'
 
 const Home = () => {
   const {searchResults, fetchError, isLoading} =  useContext(DataContext)
-  
+ 
   return (
     <main className="Home">
             {isLoading && <p className="statusMsg">Loading posts...</p>}

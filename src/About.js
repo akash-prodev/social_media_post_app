@@ -5,7 +5,7 @@ const About = () => {
     <main className='About'>
     <h2>About</h2>
     
-    <p style={{marginTop: "1rem"}}>Hi, It's Akash here. I would like to become a remote front end developer</p>
+    <p style={{marginTop: "1rem"}}>Hi, It's Akash here. I would like to become a front end developer</p>
     </main>
   )
 }
